@@ -1,0 +1,43 @@
+name: Decompile JAR to SRC
+
+on:
+  push:
+    paths:
+      - 'input/*.jar' # Chạy khi bạn thêm file jar vào thư mục input
+
+jobs:
+  decompile:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # Tải công cụ dịch ngược Vineflower
+      - name: Download Vineflower
+        run: |
+          mkdir -p tools
+          curl -L -o tools/vineflower.jar https://github.com/Vineflower/vineflower/releases/download/1.10.1/vineflower-1.10.1.jar
+
+      # Thực hiện dịch ngược file trong thư mục input/ vào thư mục src/
+      - name: Decompile JAR
+        run: |
+          mkdir -p src
+          java -jar tools/vineflower.jar -dgs=1 input/*.jar src/
+
+      # Tự động đẩy mã nguồn (src) ngược lại lên GitHub của bạn
+      - name: Commit and Push SRC
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add src/
+          git commit -m "Decompiled new plugin source" || exit 0
+          git push
